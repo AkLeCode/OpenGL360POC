@@ -28,7 +28,7 @@ class SphereGLSurfaceView(context: Context) : GLSurfaceView(context) {
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.x - previousX
                     val dy = event.y - previousY
-                    renderer.updateRotation(dx, dy)
+                    renderer.updateCameraRotation(dx, dy)
                     requestRender() // Redessiner après interaction
                 }
             }

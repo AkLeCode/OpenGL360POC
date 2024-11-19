@@ -52,8 +52,8 @@ fun MainScreen() {
                 videoDuration = duration
 
                 // Met à jour les rotations
-                val (y) = sphereGLSurfaceView.getCameraOrientation()
-                rotationY = y
+                val (yaw, pitch) = sphereGLSurfaceView.getCameraOrientation()
+                rotationY = yaw
             }
         }
     }
