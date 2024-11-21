@@ -60,3 +60,8 @@ Le projet utilise **Jetpack Compose** pour la conception de l'interface utilisat
 
 ## 📜 Licence
 Ce projet est open-source et peut être utilisé comme base pour vos propres expériences. Cependant, il est fourni "tel quel", sans garantie d'aucune sorte.
+
+---
+## Video
+Video d'origine : https://vimeo.com/214401712
+
