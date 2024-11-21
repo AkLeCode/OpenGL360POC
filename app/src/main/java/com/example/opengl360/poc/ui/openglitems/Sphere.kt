@@ -1,23 +1,16 @@
 package com.example.opengl360.poc.ui.openglitems
 
-import android.opengl.GLES11Ext
 import android.opengl.GLES30
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import java.nio.ShortBuffer
+import android.opengl.GLES11Ext
 import kotlin.math.PI
+import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.sin
 
-/**
- * Cette classe représente une sphère 3D pour OpenGL ES.
- * Elle génère les coordonnées des sommets, les indices et les coordonnées de texture nécessaires.
- *
- * @param latSegments Nombre de segments en latitude
- * @param lonSegments Nombre de segments en longitude
- * @param radius Rayon de la sphère
- */
 class Sphere(latSegments: Int, lonSegments: Int, radius: Float) {
     private val vertexBuffer: FloatBuffer
     private val texCoordBuffer: FloatBuffer
@@ -35,14 +28,19 @@ class Sphere(latSegments: Int, lonSegments: Int, radius: Float) {
         val texCoords = mutableListOf<Float>()
         val indices = mutableListOf<Short>()
 
-        // Génération des sommets et des coordonnées de texture
-        for (lat in 0..latSegments) {
-            val theta = lat * PI / latSegments
+        val vertsPerRow = lonSegments + 1
+
+        // Augmenter le nombre de segments pour une sphère plus lisse
+        val adjustedLatSegments = latSegments * 2
+        val adjustedLonSegments = lonSegments * 2
+
+        for (lat in 0..adjustedLatSegments) {
+            val theta = lat * PI / adjustedLatSegments
             val sinTheta = sin(theta)
             val cosTheta = cos(theta)
 
-            for (lon in 0..lonSegments) {
-                val phi = lon * 2 * PI / lonSegments
+            for (lon in 0..adjustedLonSegments) {
+                val phi = lon * 2 * PI / adjustedLonSegments - PI / 2 // Décalage pour centrer la texture
                 val sinPhi = sin(phi)
                 val cosPhi = cos(phi)
 
@@ -53,16 +51,21 @@ class Sphere(latSegments: Int, lonSegments: Int, radius: Float) {
                 vertices.add(y * radius)
                 vertices.add(z * radius)
 
-                texCoords.add(lon.toFloat() / lonSegments)
-                texCoords.add(lat.toFloat() / latSegments)
+                // Génération des coordonnées de texture avec une projection adaptée
+                val u = lon.toFloat() / adjustedLonSegments
+                val v = lat.toFloat() / adjustedLatSegments
+
+                // Appliquer une correction pour réduire la distorsion aux pôles
+                val correctedV = 0.5f - (asin(y) / PI)
+                texCoords.add(u)
+                texCoords.add(correctedV.toFloat())
             }
         }
 
-        // Génération des indices pour les triangles
-        for (lat in 0 until latSegments) {
-            for (lon in 0 until lonSegments) {
-                val first = (lat * (lonSegments + 1) + lon).toShort()
-                val second = (first + lonSegments + 1).toShort()
+        for (lat in 0 until adjustedLatSegments) {
+            for (lon in 0 until adjustedLonSegments) {
+                val first = (lat * (adjustedLonSegments + 1) + lon).toShort()
+                val second = (first + adjustedLonSegments + 1).toShort()
 
                 indices.add(first)
                 indices.add(second)
@@ -74,7 +77,6 @@ class Sphere(latSegments: Int, lonSegments: Int, radius: Float) {
             }
         }
 
-        // Création des buffers
         vertexBuffer = ByteBuffer.allocateDirect(vertices.size * 4)
             .order(ByteOrder.nativeOrder())
             .asFloatBuffer()
@@ -95,7 +97,7 @@ class Sphere(latSegments: Int, lonSegments: Int, radius: Float) {
 
         indexCount = indices.size
 
-        // Shader de vertex
+        // Shader de vertex (inchangé)
         val vertexShaderCode = """
             uniform mat4 uMVPMatrix;
             attribute vec3 aPosition;
@@ -107,22 +109,28 @@ class Sphere(latSegments: Int, lonSegments: Int, radius: Float) {
             }
         """.trimIndent()
 
-        // Shader de fragment
+        // Shader de fragment (inchangé)
         val fragmentShaderCode = """
             #extension GL_OES_EGL_image_external : require
-            precision mediump float;
-            uniform samplerExternalOES uTexture;
-            varying vec2 vTexCoord;
-            void main() {
-                gl_FragColor = texture2D(uTexture, vTexCoord);
-            }
+precision mediump float;
+uniform samplerExternalOES uTexture;
+uniform vec2 texelSize; // Taille du pas de la texture (à transmettre depuis Kotlin)
+varying vec2 vTexCoord;
+
+void main() {
+    vec4 color = vec4(0.0);
+    color += texture2D(uTexture, vTexCoord) * 0.5; // Central
+    color += texture2D(uTexture, vTexCoord + texelSize * vec2(1.0, 0.0)) * 0.125; // Droite
+    color += texture2D(uTexture, vTexCoord + texelSize * vec2(-1.0, 0.0)) * 0.125; // Gauche
+    color += texture2D(uTexture, vTexCoord + texelSize * vec2(0.0, 1.0)) * 0.125; // Haut
+    color += texture2D(uTexture, vTexCoord + texelSize * vec2(0.0, -1.0)) * 0.125; // Bas
+    gl_FragColor = color;
+}
         """.trimIndent()
 
-        // Compilation des shaders
         val vertexShader = loadShader(GLES30.GL_VERTEX_SHADER, vertexShaderCode)
         val fragmentShader = loadShader(GLES30.GL_FRAGMENT_SHADER, fragmentShaderCode)
 
-        // Création du programme OpenGL
         program = GLES30.glCreateProgram().also {
             GLES30.glAttachShader(it, vertexShader)
             GLES30.glAttachShader(it, fragmentShader)
@@ -135,12 +143,6 @@ class Sphere(latSegments: Int, lonSegments: Int, radius: Float) {
         textureHandle = GLES30.glGetUniformLocation(program, "uTexture")
     }
 
-    /**
-     * Dessine la sphère avec une texture vidéo.
-     *
-     * @param mvpMatrix Matrice de transformation
-     * @param textureId Identifiant de la texture
-     */
     fun drawWithVideoTexture(mvpMatrix: FloatArray, textureId: Int) {
         GLES30.glUseProgram(program)
 
@@ -154,7 +156,11 @@ class Sphere(latSegments: Int, lonSegments: Int, radius: Float) {
 
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         GLES30.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
-        GLES30.glUniform1i(textureHandle, 0)
+
+        // Activer le mipmapping
+        GLES30.glGenerateMipmap(GLES30.GL_TEXTURE_2D)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR_MIPMAP_LINEAR)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
 
         GLES30.glDrawElements(GLES30.GL_TRIANGLES, indexCount, GLES30.GL_UNSIGNED_SHORT, indexBuffer)
 
@@ -162,26 +168,19 @@ class Sphere(latSegments: Int, lonSegments: Int, radius: Float) {
         GLES30.glDisableVertexAttribArray(texCoordHandle)
     }
 
-    /**
-     * Charge et compile un shader OpenGL.
-     *
-     * @param type Type du shader (vertex ou fragment)
-     * @param shaderCode Code source du shader
-     * @return Identifiant du shader compilé
-     */
     private fun loadShader(type: Int, shaderCode: String): Int {
-        return GLES30.glCreateShader(type).also { shader ->
-            GLES30.glShaderSource(shader, shaderCode)
-            GLES30.glCompileShader(shader)
+        val shader = GLES30.glCreateShader(type)
+        GLES30.glShaderSource(shader, shaderCode)
+        GLES30.glCompileShader(shader)
 
-            // Vérification des erreurs de compilation
-            val compileStatus = IntArray(1)
-            GLES30.glGetShaderiv(shader, GLES30.GL_COMPILE_STATUS, compileStatus, 0)
-            if (compileStatus[0] == 0) {
-                val errorMsg = GLES30.glGetShaderInfoLog(shader)
-                GLES30.glDeleteShader(shader)
-                throw RuntimeException("Erreur de compilation du shader : $errorMsg")
-            }
+        val compileStatus = IntArray(1)
+        GLES30.glGetShaderiv(shader, GLES30.GL_COMPILE_STATUS, compileStatus, 0)
+        if (compileStatus[0] == 0) {
+            val errorMsg = GLES30.glGetShaderInfoLog(shader)
+            GLES30.glDeleteShader(shader)
+            throw RuntimeException("Erreur de compilation du shader : $errorMsg")
         }
+
+        return shader
     }
 }
