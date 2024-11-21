@@ -83,7 +83,7 @@ class SphereRenderer(private val context: Context) : GLSurfaceView.Renderer {
         // Calcul du ratio d'aspect
         val aspectRatio = width.toFloat() / height.toFloat()
         // Configure une matrice de projection perspective avec un champ de vision (FOV) réduit
-        val fovY = 35f // Réduction pour diminuer l'effet "fish-eye"
+        val fovY = 40f // Réduction pour diminuer l'effet "fish-eye"
         Matrix.perspectiveM(projectionMatrix, 0, fovY, aspectRatio, 0.1f, 100f)
     }
 
