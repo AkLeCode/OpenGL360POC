@@ -29,19 +29,27 @@ import com.example.opengl360.poc.R
 import com.example.opengl360.poc.ui.openglitems.SphereGLSurfaceView
 import kotlinx.coroutines.delay
 
-
+/**
+ * Composable principal représentant l'écran de visualisation de la vidéo 360°.
+ * Il inclut la sphère 360°, les contrôles de lecture et un indicateur de rotation.
+ */
 @Composable
 fun MainScreen() {
+    // État de lecture de la vidéo
     var isPlaying by remember { mutableStateOf(true) }
+    // Progression actuelle de la vidéo
     var videoProgress by remember { mutableStateOf(0) }
+    // Durée totale de la vidéo
     var videoDuration by remember { mutableStateOf(1) }
+    // Indique si l'affichage est en plein écran
     var isFullscreen by remember { mutableStateOf(false) }
+    // Rotation horizontale de la caméra
     var rotationY by remember { mutableStateOf(0f) }
 
-    // Stocke la référence à l'instance actuelle de SphereGLSurfaceView
+    // Référence mutable à l'instance de SphereGLSurfaceView
     val sphereGLSurfaceViewRef = remember { mutableStateOf<SphereGLSurfaceView?>(null) }
 
-    // Met à jour régulièrement les informations de la vidéo (progression et durée)
+    // Mise à jour périodique des informations vidéo (progression et durée)
     LaunchedEffect(Unit) {
         while (true) {
             delay(100) // Mise à jour toutes les 100ms
@@ -51,7 +59,7 @@ fun MainScreen() {
                 videoProgress = progress
                 videoDuration = duration
 
-                // Met à jour les rotations
+                // Mise à jour de la rotation horizontale
                 val (y) = sphereGLSurfaceView.getCameraOrientation()
                 rotationY = y
             }
@@ -62,6 +70,7 @@ fun MainScreen() {
         modifier = Modifier
             .fillMaxSize()
     ) {
+        // Zone contenant la vue de la sphère 360° et les contrôles
         Box(
             modifier =
             if (isFullscreen)
@@ -75,20 +84,21 @@ fun MainScreen() {
                     .clip(shape = ShapeDefaults.Small)
         ) {
 
+            // Vue Android pour l'intégration d'OpenGL
             AndroidView(
                 factory = { context ->
                     SphereGLSurfaceView(context).apply {
                         updatePlayingState(isPlaying)
-                        sphereGLSurfaceViewRef.value = this // Associe l'instance à la référence
+                        sphereGLSurfaceViewRef.value = this // Lien avec la référence mutable
                     }
                 },
                 update = { view ->
                     view.updatePlayingState(isPlaying)
                 },
                 modifier = Modifier.fillMaxSize().background(Color.Transparent)
-                )
+            )
 
-            // Indicateur de rotation (2D, horizontal uniquement)
+            // Indicateur de rotation 2D
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -96,17 +106,20 @@ fun MainScreen() {
             ) {
                 RotationIndicator2D(rotationY = rotationY)
             }
+
+            // Barre de contrôle de la vidéo
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .background(Color(0x80000000))
+                    .background(Color(0x80000000)) // Fond semi-transparent
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    // Bouton Lecture/Pause
                     IconButton(
                         onClick = { isPlaying = !isPlaying },
                         modifier = Modifier.size(32.dp)
@@ -119,12 +132,13 @@ fun MainScreen() {
                     }
                     Spacer(Modifier.width(4.dp))
 
+                    // Barre de progression de la vidéo
                     Slider(
                         value = videoProgress.toFloat(),
                         valueRange = 0f..videoDuration.toFloat(),
                         onValueChange = { newValue -> videoProgress = newValue.toInt() },
                         onValueChangeFinished = {
-                            // Seek dans la vidéo lorsque l'utilisateur relâche le slider
+                            // Modification de la position de lecture dans la vidéo
                             sphereGLSurfaceViewRef.value?.seekTo(videoProgress)
                         },
                         colors = SliderDefaults.colors(
@@ -135,6 +149,7 @@ fun MainScreen() {
                         modifier = Modifier.weight(1f)
                     )
 
+                    // Texte affichant la progression et la durée
                     Text(
                         text = "${formatTime(videoProgress)} / ${formatTime(videoDuration)}",
                         color = Color.White,
@@ -142,6 +157,7 @@ fun MainScreen() {
                     )
                     Spacer(Modifier.width(4.dp))
 
+                    // Bouton Plein écran
                     IconButton(
                         onClick = { isFullscreen = !isFullscreen },
                         modifier = Modifier.size(32.dp)
@@ -158,6 +174,12 @@ fun MainScreen() {
     }
 }
 
+/**
+ * Formate une durée exprimée en millisecondes au format mm:ss.
+ *
+ * @param milliseconds Durée en millisecondes.
+ * @return Chaîne formatée au format mm:ss.
+ */
 private fun formatTime(milliseconds: Int): String {
     val totalSeconds = milliseconds / 1000
     val minutes = totalSeconds / 60
@@ -165,10 +187,15 @@ private fun formatTime(milliseconds: Int): String {
     return String.format("%02d:%02d", minutes, seconds)
 }
 
-// Composable pour l'indicateur 2D (horizontal uniquement)
+/**
+ * Composable affichant un indicateur de rotation 2D.
+ * Cet indicateur affiche une flèche indiquant la direction horizontale.
+ *
+ * @param rotationY Rotation horizontale en degrés.
+ */
 @Composable
 fun RotationIndicator2D(rotationY: Float) {
-    val offsetAngle = 90f // Décalage pour que la position par défaut soit vers le haut
+    val offsetAngle = -90f // Décalage pour centrer la flèche vers le haut
 
     Box(
         modifier = Modifier
@@ -181,15 +208,15 @@ fun RotationIndicator2D(rotationY: Float) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val radius = size.minDimension / 2f
 
-            // Cercle extérieur
+            // Dessine un cercle extérieur
             drawCircle(
                 color = Color(0x80000000),
                 radius = radius,
                 center = this.center
             )
 
-            // Flèche indiquant l'orientation horizontale
-            val angle = (rotationY - offsetAngle).toRadians() // Applique le décalage
+            // Dessine une flèche indiquant la rotation horizontale
+            val angle = (rotationY - offsetAngle).toRadians()
             val indicatorX = this.center.x + (radius) * kotlin.math.cos(angle)
             val indicatorY = this.center.y + (radius) * kotlin.math.sin(angle)
 
@@ -203,5 +230,9 @@ fun RotationIndicator2D(rotationY: Float) {
     }
 }
 
-// Extension pour convertir les angles
+/**
+ * Extension pour convertir un angle en degrés en radians.
+ *
+ * @return L'angle en radians.
+ */
 fun Float.toRadians() = (this / 180f * kotlin.math.PI).toFloat()
