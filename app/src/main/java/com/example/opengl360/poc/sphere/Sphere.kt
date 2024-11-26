@@ -1,4 +1,4 @@
-package com.example.opengl360.poc.ui.openglitems
+package com.example.opengl360.poc.sphere
 
 import android.opengl.GLES30
 import java.nio.ByteBuffer

@@ -1,4 +1,4 @@
-package com.example.opengl360.poc.ui.openglitems
+package com.example.opengl360.poc.sphere
 
 import android.content.Context
 import android.graphics.SurfaceTexture
@@ -12,7 +12,6 @@ import android.view.Surface
 import com.example.opengl360.poc.R
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
-import kotlin.concurrent.fixedRateTimer
 import kotlin.math.cos
 import kotlin.math.sin
 

@@ -8,17 +8,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.viewinterop.AndroidView
-import com.example.opengl360.poc.ui.openglitems.SphereGLSurfaceView
+import com.example.opengl360.poc.subtitles.SubtitleManager
 import com.example.opengl360.poc.ui.theme.MainScreen
 import com.example.opengl360.poc.ui.theme.OpenGL360POCTheme
 
@@ -27,6 +23,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+
+        val subtitleManager = SubtitleManager(this, R.raw.beauval_1_srt_video)
         setContent {
             OpenGL360POCTheme {
                 Surface(
@@ -34,7 +32,8 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .background(Color.White)
                 ) {
-                    MainScreen()
+
+                    MainScreen(subtitleManager)
                 }
             }
         }

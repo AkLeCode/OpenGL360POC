@@ -1,6 +1,5 @@
 package com.example.opengl360.poc.ui.theme
 
-import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -19,14 +18,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.opengl360.poc.R
-import com.example.opengl360.poc.ui.openglitems.SphereGLSurfaceView
+import com.example.opengl360.poc.subtitles.SubtitleManager
+import com.example.opengl360.poc.sphere.SphereGLSurfaceView
 import kotlinx.coroutines.delay
 
 /**
@@ -34,7 +34,7 @@ import kotlinx.coroutines.delay
  * Il inclut la sphère 360°, les contrôles de lecture et un indicateur de rotation.
  */
 @Composable
-fun MainScreen() {
+fun MainScreen(subtitleManager: SubtitleManager) {
     // État de lecture de la vidéo
     var isPlaying by remember { mutableStateOf(true) }
     // Progression actuelle de la vidéo
@@ -42,9 +42,11 @@ fun MainScreen() {
     // Durée totale de la vidéo
     var videoDuration by remember { mutableStateOf(1) }
     // Indique si l'affichage est en plein écran
-    var isFullscreen by remember { mutableStateOf(false) }
+    var isFullscreen by remember { mutableStateOf(true) }
     // Rotation horizontale de la caméra
     var rotationY by remember { mutableStateOf(0f) }
+    // Sous-titre
+    var currentSubtitle by remember { mutableStateOf<AnnotatedString?>(null) }
 
     // Référence mutable à l'instance de SphereGLSurfaceView
     val sphereGLSurfaceViewRef = remember { mutableStateOf<SphereGLSurfaceView?>(null) }
@@ -62,6 +64,9 @@ fun MainScreen() {
                 // Mise à jour de la rotation horizontale
                 val (y) = sphereGLSurfaceView.getCameraOrientation()
                 rotationY = y
+
+                // Mise à jour des sous-titres
+                currentSubtitle = subtitleManager.getSubtitleForTime(progress)
             }
         }
     }
@@ -107,68 +112,111 @@ fun MainScreen() {
                 RotationIndicator2D(rotationY = rotationY)
             }
 
-            // Barre de contrôle de la vidéo
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .background(Color(0x80000000)) // Fond semi-transparent
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Bouton Lecture/Pause
-                    IconButton(
-                        onClick = { isPlaying = !isPlaying },
-                        modifier = Modifier.size(32.dp)
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Bottom,
+                horizontalAlignment = Alignment.CenterHorizontally
+            )
+            {
+                if (currentSubtitle != null && isFullscreen) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = if (isPlaying) ImageVector.vectorResource(R.drawable.pause) else Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = Color.White
-                        )
-                    }
-                    Spacer(Modifier.width(4.dp))
-
-                    // Barre de progression de la vidéo
-                    Slider(
-                        value = videoProgress.toFloat(),
-                        valueRange = 0f..videoDuration.toFloat(),
-                        onValueChange = { newValue -> videoProgress = newValue.toInt() },
-                        onValueChangeFinished = {
-                            // Modification de la position de lecture dans la vidéo
-                            sphereGLSurfaceViewRef.value?.seekTo(videoProgress)
-                        },
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color.White,
-                            activeTrackColor = Color(0xFF00FF00),
-                            inactiveTrackColor = Color.Gray
-                        ),
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    // Texte affichant la progression et la durée
-                    Text(
-                        text = "${formatTime(videoProgress)} / ${formatTime(videoDuration)}",
-                        color = Color.White,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                    Spacer(Modifier.width(4.dp))
-
-                    // Bouton Plein écran
-                    IconButton(
-                        onClick = { isFullscreen = !isFullscreen },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isFullscreen) ImageVector.vectorResource(R.drawable.fullon) else ImageVector.vectorResource(R.drawable.fulloff),
-                            contentDescription = null,
-                            tint = Color.White
+                        Text(
+                            text = currentSubtitle!!,
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            modifier = Modifier
+                                .background(Color(0x80000000), ShapeDefaults.Small)
+                                .padding(15.dp)
                         )
                     }
                 }
+
+                // Barre de contrôle de la vidéo
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0x80000000)) // Fond semi-transparent
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Bouton Lecture/Pause
+                        IconButton(
+                            onClick = { isPlaying = !isPlaying },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isPlaying) ImageVector.vectorResource(R.drawable.pause) else Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        }
+                        Spacer(Modifier.width(4.dp))
+
+                        // Barre de progression de la vidéo
+                        Slider(
+                            value = videoProgress.toFloat(),
+                            valueRange = 0f..videoDuration.toFloat(),
+                            onValueChange = { newValue -> videoProgress = newValue.toInt() },
+                            onValueChangeFinished = {
+                                // Modification de la position de lecture dans la vidéo
+                                sphereGLSurfaceViewRef.value?.seekTo(videoProgress)
+                            },
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color.White,
+                                activeTrackColor = Color(0xFF00FF00),
+                                inactiveTrackColor = Color.Gray
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        // Texte affichant la progression et la durée
+                        Text(
+                            text = "${formatTime(videoProgress)} / ${formatTime(videoDuration)}",
+                            color = Color.White,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+
+                        // Bouton Plein écran
+                        IconButton(
+                            onClick = { isFullscreen = !isFullscreen },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isFullscreen) ImageVector.vectorResource(R.drawable.fullon) else ImageVector.vectorResource(R.drawable.fulloff),
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+
+        }
+        if (currentSubtitle != null && !isFullscreen) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+                    .clip(shape = ShapeDefaults.Small)
+            ) {
+                Text(
+                    text = currentSubtitle!!,
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    modifier = Modifier
+                        .background(Color(0x80000000), ShapeDefaults.Small)
+                        .padding(15.dp)
+                )
             }
         }
     }

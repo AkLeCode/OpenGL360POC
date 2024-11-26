@@ -1,9 +1,8 @@
-package com.example.opengl360.poc.ui.openglitems
+package com.example.opengl360.poc.sphere
 
 import android.content.Context
 import android.graphics.PixelFormat
 import android.opengl.GLSurfaceView
-import android.util.Log
 import android.view.MotionEvent
 
 /**
