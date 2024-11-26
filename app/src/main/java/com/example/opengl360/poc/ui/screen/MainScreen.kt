@@ -1,5 +1,7 @@
-package com.example.opengl360.poc.ui.theme
+package com.example.opengl360.poc.ui.screen
 
+import android.os.Environment
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,8 +11,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ShapeDefaults
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,7 +43,7 @@ fun MainScreen(subtitleManager: SubtitleManager) {
     // Durée totale de la vidéo
     var videoDuration by remember { mutableStateOf(1) }
     // Indique si l'affichage est en plein écran
-    var isFullscreen by remember { mutableStateOf(true) }
+    var isFullscreen by remember { mutableStateOf(false) }
     // Rotation horizontale de la caméra
     var rotationY by remember { mutableStateOf(0f) }
     // Sous-titre
@@ -51,6 +51,10 @@ fun MainScreen(subtitleManager: SubtitleManager) {
 
     // Référence mutable à l'instance de SphereGLSurfaceView
     val sphereGLSurfaceViewRef = remember { mutableStateOf<SphereGLSurfaceView?>(null) }
+
+    val moviesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
+    val moviesPath = moviesDir.absolutePath
+    val videoPath = "$moviesPath/beauval-1/bundle"
 
     // Mise à jour périodique des informations vidéo (progression et durée)
     LaunchedEffect(Unit) {
@@ -74,7 +78,8 @@ fun MainScreen(subtitleManager: SubtitleManager) {
 
     Box(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
         // Zone contenant la vue de la sphère 360° et les contrôles
         Box(
@@ -82,18 +87,16 @@ fun MainScreen(subtitleManager: SubtitleManager) {
             if (isFullscreen)
                 Modifier
                     .fillMaxSize()
-                    .align(Alignment.Center)
             else
                 Modifier
                     .fillMaxSize(0.7f)
-                    .align(Alignment.Center)
                     .clip(shape = ShapeDefaults.Small)
         ) {
 
             // Vue Android pour l'intégration d'OpenGL
             AndroidView(
                 factory = { context ->
-                    SphereGLSurfaceView(context).apply {
+                    SphereGLSurfaceView(context, videoPath).apply {
                         updatePlayingState(isPlaying)
                         sphereGLSurfaceViewRef.value = this // Lien avec la référence mutable
                     }
@@ -101,7 +104,9 @@ fun MainScreen(subtitleManager: SubtitleManager) {
                 update = { view ->
                     view.updatePlayingState(isPlaying)
                 },
-                modifier = Modifier.fillMaxSize().background(Color.Transparent)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Transparent)
             )
 
             // Indicateur de rotation 2D
@@ -131,7 +136,7 @@ fun MainScreen(subtitleManager: SubtitleManager) {
                             color = Color.White,
                             fontSize = 20.sp,
                             modifier = Modifier
-                                .background(Color(0x80000000), ShapeDefaults.Small)
+                                .background(Color(0x801C4C43), ShapeDefaults.Small)
                                 .padding(15.dp)
                         )
                     }
@@ -141,7 +146,7 @@ fun MainScreen(subtitleManager: SubtitleManager) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0x80000000)) // Fond semi-transparent
+                        .background(Color(0x801C4C43)) // Fond semi-transparent
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Row(
@@ -179,7 +184,7 @@ fun MainScreen(subtitleManager: SubtitleManager) {
                         )*/
 
                         CustomVideoSlider(
-                            sizeFraction = if(isFullscreen) 0.88f else 0.84f,
+                            sizeFraction = if (isFullscreen) 0.88f else 0.84f,
                             progress = videoProgress,
                             duration = videoDuration,
                             subtitles = subtitleManager.subtitles,
@@ -188,7 +193,6 @@ fun MainScreen(subtitleManager: SubtitleManager) {
                                 sphereGLSurfaceViewRef.value?.seekTo(videoProgress)
                             }
                         )
-
 
                         // Texte affichant la progression et la durée
                         Text(
@@ -204,7 +208,9 @@ fun MainScreen(subtitleManager: SubtitleManager) {
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
-                                imageVector = if (isFullscreen) ImageVector.vectorResource(R.drawable.fullon) else ImageVector.vectorResource(R.drawable.fulloff),
+                                imageVector = if (isFullscreen) ImageVector.vectorResource(R.drawable.fullon) else ImageVector.vectorResource(
+                                    R.drawable.fulloff
+                                ),
                                 contentDescription = null,
                                 tint = Color.White
                             )
@@ -214,20 +220,24 @@ fun MainScreen(subtitleManager: SubtitleManager) {
             }
 
         }
+
         if (currentSubtitle != null && !isFullscreen) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
+                    .fillMaxHeight(0.142f)
                     .clip(shape = ShapeDefaults.Small)
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 30.dp)
+                    .background(Color(0xff1C4C43), ShapeDefaults.Small),
+                contentAlignment = Alignment.CenterStart
             ) {
                 Text(
                     text = currentSubtitle!!,
                     color = Color.White,
                     fontSize = 20.sp,
                     modifier = Modifier
-                        .background(Color(0x80000000), ShapeDefaults.Small)
+                        .fillMaxWidth()
                         .padding(15.dp)
                 )
             }
@@ -271,7 +281,7 @@ fun RotationIndicator2D(rotationY: Float) {
 
             // Dessine un cercle extérieur
             drawCircle(
-                color = Color(0x80000000),
+                color = Color(0x801C4C43),
                 radius = radius,
                 center = this.center
             )
@@ -282,7 +292,7 @@ fun RotationIndicator2D(rotationY: Float) {
             val indicatorY = this.center.y + (radius) * kotlin.math.sin(angle)
 
             drawLine(
-                color = Color.White,
+                color = Color(0xFF23CF76),
                 start = this.center,
                 end = Offset(indicatorX.toFloat(), indicatorY.toFloat()),
                 strokeWidth = 4.dp.toPx()

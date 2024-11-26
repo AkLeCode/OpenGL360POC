@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.opengl360.poc.subtitles.SubtitleManager
-import com.example.opengl360.poc.ui.theme.MainScreen
+import com.example.opengl360.poc.ui.screen.MainScreen
 import com.example.opengl360.poc.ui.theme.OpenGL360POCTheme
 
 class MainActivity : ComponentActivity() {
