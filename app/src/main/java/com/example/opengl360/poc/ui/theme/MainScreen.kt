@@ -27,6 +27,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.example.opengl360.poc.R
 import com.example.opengl360.poc.subtitles.SubtitleManager
 import com.example.opengl360.poc.sphere.SphereGLSurfaceView
+import com.example.opengl360.poc.ui.components.CustomVideoSlider
 import kotlinx.coroutines.delay
 
 /**
@@ -161,7 +162,7 @@ fun MainScreen(subtitleManager: SubtitleManager) {
                         Spacer(Modifier.width(4.dp))
 
                         // Barre de progression de la vidéo
-                        Slider(
+                        /*Slider(
                             value = videoProgress.toFloat(),
                             valueRange = 0f..videoDuration.toFloat(),
                             onValueChange = { newValue -> videoProgress = newValue.toInt() },
@@ -175,7 +176,19 @@ fun MainScreen(subtitleManager: SubtitleManager) {
                                 inactiveTrackColor = Color.Gray
                             ),
                             modifier = Modifier.weight(1f)
+                        )*/
+
+                        CustomVideoSlider(
+                            sizeFraction = if(isFullscreen) 0.88f else 0.84f,
+                            progress = videoProgress,
+                            duration = videoDuration,
+                            subtitles = subtitleManager.subtitles,
+                            onSeek = { newProgress ->
+                                videoProgress = newProgress
+                                sphereGLSurfaceViewRef.value?.seekTo(videoProgress)
+                            }
                         )
+
 
                         // Texte affichant la progression et la durée
                         Text(

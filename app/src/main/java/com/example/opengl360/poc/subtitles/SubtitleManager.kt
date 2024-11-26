@@ -21,7 +21,7 @@ import java.io.InputStreamReader
 class SubtitleManager(private val context: Context, private val subtitleResId: Int) {
 
     // Liste des sous-titres chargés
-    private val subtitles = mutableListOf<Subtitle>()
+    val subtitles = mutableListOf<Subtitle>()
 
     // Initialisation : charger les sous-titres dès la création de l'objet
     init {
