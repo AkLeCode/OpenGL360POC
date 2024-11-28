@@ -60,14 +60,19 @@ class Sphere(latSegments: Int, lonSegments: Int, radius: Float) {
                 vertices.add(y * radius)
                 vertices.add(z * radius)
 
-                // Génération des coordonnées de texture
+                val u = lon.toFloat() / adjustedLonSegments
+                val v = lat.toFloat() / adjustedLatSegments
+                texCoords.add(u)
+                texCoords.add(v)
+
+                /*// Génération des coordonnées de texture
                 val u = lon.toFloat() / adjustedLonSegments
                 val v = lat.toFloat() / adjustedLatSegments
 
                 // Correction pour réduire la distorsion aux pôles
                 val correctedV = 0.5f - (asin(y) / PI)
                 texCoords.add(u)
-                texCoords.add(correctedV.toFloat())
+                texCoords.add(correctedV.toFloat())*/
             }
         }
 
@@ -125,17 +130,10 @@ class Sphere(latSegments: Int, lonSegments: Int, radius: Float) {
             #extension GL_OES_EGL_image_external : require
             precision mediump float;
             uniform samplerExternalOES uTexture;
-            uniform vec2 texelSize; // Taille du pas de la texture (à transmettre depuis Kotlin)
             varying vec2 vTexCoord;
 
             void main() {
-                vec4 color = vec4(0.0);
-                color += texture2D(uTexture, vTexCoord) * 0.5; // Central
-                color += texture2D(uTexture, vTexCoord + texelSize * vec2(1.0, 0.0)) * 0.125; // Droite
-                color += texture2D(uTexture, vTexCoord + texelSize * vec2(-1.0, 0.0)) * 0.125; // Gauche
-                color += texture2D(uTexture, vTexCoord + texelSize * vec2(0.0, 1.0)) * 0.125; // Haut
-                color += texture2D(uTexture, vTexCoord + texelSize * vec2(0.0, -1.0)) * 0.125; // Bas
-                gl_FragColor = color;
+                gl_FragColor = texture2D(uTexture, vTexCoord);
             }
         """.trimIndent()
 
@@ -175,11 +173,6 @@ class Sphere(latSegments: Int, lonSegments: Int, radius: Float) {
 
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         GLES30.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
-
-        // Active le mipmapping pour améliorer la qualité
-        GLES30.glGenerateMipmap(GLES30.GL_TEXTURE_2D)
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR_MIPMAP_LINEAR)
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
 
         GLES30.glDrawElements(GLES30.GL_TRIANGLES, indexCount, GLES30.GL_UNSIGNED_SHORT, indexBuffer)
 

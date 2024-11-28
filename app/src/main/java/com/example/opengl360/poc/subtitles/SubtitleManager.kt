@@ -2,6 +2,7 @@ package com.example.opengl360.poc.subtitles
 
 import android.content.Context
 import android.text.Spanned
+import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -9,6 +10,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.text.HtmlCompat
 import java.io.BufferedReader
+import java.io.File
+import java.io.FileInputStream
 import java.io.InputStreamReader
 
 /**
@@ -16,9 +19,9 @@ import java.io.InputStreamReader
  * Cette classe charge les sous-titres depuis un fichier .srt et les convertit en une liste de `Subtitle`.
  *
  * @param context Le contexte Android pour accéder aux ressources.
- * @param subtitleResId L'ID de ressource du fichier .srt contenant les sous-titres.
+ * @param subtitlePath Le chemin du fichier .srt contenant les sous-titres.
  */
-class SubtitleManager(private val context: Context, private val subtitleResId: Int) {
+class SubtitleManager(private val context: Context, private val subtitlePath: String) {
 
     // Liste des sous-titres chargés
     val subtitles = mutableListOf<Subtitle>()
@@ -34,40 +37,55 @@ class SubtitleManager(private val context: Context, private val subtitleResId: I
      * (temps de début, temps de fin, texte), et les stocke dans une liste.
      */
     private fun loadSubtitles() {
-        val inputStream = context.resources.openRawResource(subtitleResId)
-        val reader = BufferedReader(InputStreamReader(inputStream))
+        try {
+            val file = File(subtitlePath)
+            if (file.exists()) {
+                val reader = BufferedReader(InputStreamReader(FileInputStream(file)))
 
-        var line: String? = reader.readLine()
-        while (line != null) {
-            try {
-                // Ligne contenant l'index du sous-titre
-                val index = line.toInt()
+                var line: String? = reader.readLine()
+                while (line != null) {
+                    try {
+                        // Ligne contenant l'index du sous-titre
+                        val index = line.toIntOrNull()
 
-                // Ligne contenant les temps de début et de fin
-                val timeRange = reader.readLine()
-                val text = StringBuilder()
+                        // Ligne contenant les temps de début et de fin
+                        val timeRange = reader.readLine()
+                        val text = StringBuilder()
 
-                // Lire le texte du sous-titre, ligne par ligne
-                var subtitleLine = reader.readLine()
-                while (!subtitleLine.isNullOrEmpty()) {
-                    text.append(subtitleLine).append("\n")
-                    subtitleLine = reader.readLine()
+                        // Lire le texte du sous-titre, ligne par ligne
+                        var subtitleLine = reader.readLine()
+                        while (!subtitleLine.isNullOrEmpty()) {
+                            text.append(subtitleLine).append("\n")
+                            subtitleLine = reader.readLine()
+                        }
+
+                        // Convertir les temps de début et de fin
+                        val (start, end) = parseTimeRange(timeRange)
+
+                        // Convertir le texte en AnnotatedString (avec styles HTML)
+                        val formattedText = parseHtmlToAnnotatedString(text.toString().trim())
+
+                        // Ajouter le sous-titre à la liste
+                        subtitles.add(Subtitle(start, end, formattedText))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                    line = reader.readLine()
                 }
 
-                // Convertir les temps de début et de fin
-                val (start, end) = parseTimeRange(timeRange)
-
-                // Convertir le texte en AnnotatedString (avec styles HTML)
-                val formattedText = parseHtmlToAnnotatedString(text.toString().trim())
-
-                // Ajouter le sous-titre à la liste
-                subtitles.add(Subtitle(start, end, formattedText))
-            } catch (e: Exception) {
-                e.printStackTrace()
+                reader.close()
+            } else {
+                // Le fichier n'existe pas
+                Log.e("SubtitleManager", "Le fichier SRT n'existe pas au chemin : $subtitlePath")
             }
-            line = reader.readLine()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Gérer l'exception (par exemple, afficher un message à l'utilisateur)
+            Log.e("SubtitleManager", "Erreur lors du chargement des sous-titres : ${e.message}")
         }
     }
+
+    // Les méthodes existantes restent inchangées
 
     /**
      * Parse une ligne contenant une plage de temps pour extraire les temps de début et de fin.
