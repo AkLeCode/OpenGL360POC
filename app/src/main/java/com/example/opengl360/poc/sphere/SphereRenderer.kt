@@ -10,6 +10,7 @@ import android.opengl.GLSurfaceView
 import android.opengl.Matrix
 import android.view.Surface
 import com.example.opengl360.poc.R
+import java.io.IOException
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.cos
@@ -20,7 +21,7 @@ import kotlin.math.sin
  *
  * @param context Contexte de l'application utilisé pour accéder aux ressources comme la vidéo.
  */
-class SphereRenderer(private val context: Context) : GLSurfaceView.Renderer {
+class SphereRenderer(private val context: Context, private val videoPath: String) : GLSurfaceView.Renderer {
     // Objet représentant la sphère
     private lateinit var sphere: Sphere
     // SurfaceTexture pour gérer la texture vidéo
@@ -49,7 +50,7 @@ class SphereRenderer(private val context: Context) : GLSurfaceView.Renderer {
 
         // Configure les paramètres de la texture vidéo
         GLES30.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
-        GLES30.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR_MIPMAP_LINEAR)
+        GLES30.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR)
         GLES30.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
 
         // Initialise la sphère
@@ -62,11 +63,18 @@ class SphereRenderer(private val context: Context) : GLSurfaceView.Renderer {
         GLES30.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
         surfaceTexture = SurfaceTexture(textureId)
 
-        // Configure le MediaPlayer pour lire la vidéo
-        mediaPlayer = MediaPlayer.create(context, R.raw.bundle)
-        mediaPlayer?.setSurface(Surface(surfaceTexture))
-        mediaPlayer?.isLooping = true
-        mediaPlayer?.start()
+        // Configure le MediaPlayer pour lire la vidéo depuis le chemin du fichier externe
+        mediaPlayer = MediaPlayer()
+        try {
+            mediaPlayer?.setDataSource(videoPath)
+            mediaPlayer?.setSurface(Surface(surfaceTexture))
+            mediaPlayer?.isLooping = true
+            mediaPlayer?.prepare()
+            mediaPlayer?.start()
+        } catch (e: IOException) {
+            e.printStackTrace()
+            // Gérer l'erreur, par exemple en affichant un message à l'utilisateur
+        }
     }
 
     /**
@@ -82,7 +90,7 @@ class SphereRenderer(private val context: Context) : GLSurfaceView.Renderer {
         // Calcul du ratio d'aspect
         val aspectRatio = width.toFloat() / height.toFloat()
         // Configure une matrice de projection perspective avec un champ de vision (FOV) réduit
-        val fovY = 40f // Réduction pour diminuer l'effet "fish-eye"
+        val fovY = 45f // Réduction pour diminuer l'effet "fish-eye"
         Matrix.perspectiveM(projectionMatrix, 0, fovY, aspectRatio, 0.1f, 100f)
     }
 

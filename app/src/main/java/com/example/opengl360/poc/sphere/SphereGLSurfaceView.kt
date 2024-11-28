@@ -11,7 +11,7 @@ import android.view.MotionEvent
  *
  * @param context Contexte de l'application.
  */
-class SphereGLSurfaceView(context: Context) : GLSurfaceView(context) {
+class SphereGLSurfaceView(context: Context, private val videoPath: String) : GLSurfaceView(context) {
     val renderer: SphereRenderer // Rendu personnalisé pour gérer la sphère et la vidéo
     var isInit: Boolean = false // Indique si la vue a été initialisée
 
@@ -23,7 +23,7 @@ class SphereGLSurfaceView(context: Context) : GLSurfaceView(context) {
         setEGLContextClientVersion(3)
 
         // Initialise le renderer
-        renderer = SphereRenderer(context)
+        renderer = SphereRenderer(context, videoPath)
         setRenderer(renderer)
 
         // Définit le mode de rendu en continu
